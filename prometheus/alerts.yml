@@ -1,0 +1,53 @@
+groups:
+  - name: ml_saas_alerts
+    interval: 30s
+    rules:
+      # High drift score alert
+      - alert: HighDataDrift
+        expr: ml_drift_score > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High data drift detected for {{ $labels.tenant_id }}"
+          description: "Model {{ $labels.model_id }} has drift score {{ $value }}"
+
+      # Failed training runs
+      - alert: TrainingFailures
+        expr: rate(ml_training_runs_total[5m]) == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No successful training runs in 30 minutes"
+          description: "Tenant {{ $labels.tenant_id }} has no training activity"
+
+      # High prediction latency
+      - alert: HighPredictionLatency
+        expr: histogram_quantile(0.95, rate(ml_prediction_latency_seconds_bucket[5m])) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High prediction latency for {{ $labels.tenant_id }}"
+          description: "95th percentile latency is {{ $value }}s"
+
+      # Auto-retraining trigger rate
+      - alert: FrequentRetraining
+        expr: rate(ml_retraining_triggered_total[1h]) > 5
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "Frequent retraining for {{ $labels.tenant_id }}"
+          description: "Model {{ $labels.model_id }} is being retrained frequently"
+
+      # Model deployment failures
+      - alert: DeploymentFailure
+        expr: increase(ml_models_deployed_total[10m]) == 0 and increase(ml_training_runs_total[10m]) > 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Model deployment issues"
+          description: "Models are being trained but not deployed"

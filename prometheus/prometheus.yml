@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ml-saas'
+    environment: 'production'
+
+scrape_configs:
+  # ML SaaS API metrics
+  - job_name: 'ml-saas-api'
+    static_configs:
+      - targets: ['api:8000']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'ml_.*'
+        action: keep
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # MLflow metrics (if exposed)
+  - job_name: 'mlflow'
+    static_configs:
+      - targets: ['mlflow:5000']
+
+# Alerting rules
+rule_files:
+  - 'alerts.yml'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
